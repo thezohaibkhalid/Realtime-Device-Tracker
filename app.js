@@ -6,6 +6,7 @@ const server = http.createServer(app);
 const io = socketIo(server);
 const path = require("path");
 
+const users = {};
 
 app.set("view engine", "ejs");
 app.set("views", __dirname + "/views");
@@ -14,10 +15,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 io.on("connection", (socket) => {
-  console.log("A user connected");
+  console.log("A user connected:", socket.id);
+
+  socket.emit("existing-users", users);
+
+  socket.on("send-location", (data) => {
+    users[socket.id] = data;
+    io.emit("recieve-location", {
+      id: socket.id,
+      ...data,
+    });
+  });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected");
+    delete users[socket.id];
+    io.emit("user-disconnected", {
+      id: socket.id,
+    });
+    console.log("A user disconnected:", socket.id);
   });
 });
 
